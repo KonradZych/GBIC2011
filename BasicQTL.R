@@ -43,8 +43,7 @@ qtlbyttest <- function(phenotypes,genotypes,trait){
 #res: resulting binary matrix
 makebinary<-function(mat){
 	res<-matrix(0,nrow(mat),ncol(mat))
-	#tres<-[100]#vector of treshold values for every trait
-	#now using median (t) as a treshold
+	#now using median (tres) as a treshold
 	for(h in 1:ncol(mat)){
 	    tres=median(mat[,h])
 		res[,h]<-(mat[,h]>tres)#tres[h])
@@ -80,8 +79,8 @@ qtlbyttest_test <- function(){
 	1.69995386811916, 0.395375105682745, 0.66074033328745)
 	setwd("d:/data")
 	#Loading data
-	phenotypes <- as.matrix(read.table("measurements_ordered.txt", sep=""))
-	genotypes <- as.matrix(read.table("genotypes_ordered.txt", sep=""))
+	phenotypes <- clean(as.matrix(read.table("measurements_ordered.txt", sep="")))
+	genotypes <- clean(as.matrix(read.table("genotypes_ordered.txt", sep="")))
 	#Testing loop
 	for(x in 1:ncol(genotypes)){
 		res <- qtlbyttest(phenotypes,genotypes,x)
@@ -92,6 +91,22 @@ qtlbyttest_test <- function(){
 		}
 		cat("All values are correct.\n")
 	}
+}
+
+makebinary_test <- function(){
+	#Creating vector of correct data
+	cor<-c(0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0)#100
+	setwd("d:/data")
+	#Loading data
+	phenotypes <- clean(as.matrix(read.table("measurements_ordered.txt", sep="")))
+		#Testing here
+	res <- makebinary(phenotypes)
+	for(i in 1:ncol(phenotypes)){
+		if(res[100,i]!=cor[i]){
+			stop("Wrong value for trait ",i,". Disconnecting for your safety.")
+		}
+	}
+	cat("Test passed. Makebinary ready to serve.\n")
 }
 
 #qtlbyttest_test()
