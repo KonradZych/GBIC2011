@@ -7,6 +7,8 @@
 #clean - Removing NA from data by replacing it with 0
 #qtlbyttest - Basic single marker mapping by using a t.test statistic (For RIL)
 #heatmapqtl - Creates data file concerning all traits and also image of it
+#pathway - creates probable pathway using values for specified marker
+#controller - AIO function
 
 #clean
 #mat: matrix to be cleaned
@@ -46,7 +48,7 @@ makebinary<-function(mat){
 	#now using median (tres) as a treshold
 	for(h in 1:ncol(mat)){
 	    tres=median(mat[,h])
-		res[,h]<-(mat[,h]>tres)#tres[h])
+		res[,h]<-(mat[,h]>tres)
 	}
 	res
 }
@@ -55,17 +57,61 @@ makebinary<-function(mat){
 #phenotypes: Matrix of row: individuals, columns: traits
 #genotypes: Matrix of row: individuals, columns: markers
 #result: name of the resulting array
-#return: translated matrix of results of qtlbyttest and an image of it
-heatmapqtl <- function(phenotypes,genotypes,output){
+#return: translated matrix of results of qtlbyttest
+heatmapqtl <- function(phenotypes,genotypes){
 	output <- NULL
 	for(y in 1:ncol(phenotypes)){
 		output <-rbind(output,qtlmap(phenotypes,genotypes,y))
 	}
 	output <- t(output)
-	image(output)
 	output
 }
 
+#pathway
+#results: output array from heatmapqtl
+#phenotypes: Matrix of row: individuals, columns: traits (mind labels, they are crucial)
+#marker: specified marker (use 100 for current data)
+pathway<-function(results,phenotypes,marker){
+	path<-NULL
+	metabolites<-as.matrix(labels(phenotypes[marker,]))
+	vect<-results[marker,]
+	for(i in 1:ncol(results)){
+		if(max(vect)==0){break}
+		else{
+			res<-which(vect==max(vect))
+			path<-c(path,metabolites[res])
+			vect[res]<-0
+		}
+	}
+	path
+}
+
+#controller
+controller<-function(){
+	#Firstly, doing tests
+	#qtlbyttest_test() - what the hell is wrong here?!
+	makebinary_test()
+	#Load data
+	setwd("d:/data")
+	print("wd set")
+	phenotypes <- as.matrix(read.table("measurements_ordered.txt", sep=""))
+	print("phenotypes loaded")
+	genotypes <- as.matrix(read.table("genotypes_ordered.txt", sep=""))
+	print("genotypes loaded")
+	#Make binary matrix of phenotypes an store it in phenotypes_binary
+	phenotypes_binary<-makebinary(clean(phenotypes))
+	print("phenotypes_binary created")
+	#Make qtlmap (quantative) an store it in result_quantative
+	result_quantative<-heatmapqtl(phenotypes,genotypes)
+	print("result_quantative created")
+	#Make qtlmap (quantative) an store it in result_binary
+	result_binary<-heatmapqtl(phenotypes_binary,genotypes)
+	print("result_binary created")
+	#Create pathway using marker 100 for binary
+	path<-pathway(result_binary, phenotypes, 100)
+	print("path created")
+	path
+}
 
 qtlbyttest_test <- function(){
 	#Creating vector of correct data
@@ -95,18 +141,21 @@ qtlbyttest_test <- function(){
 
 makebinary_test <- function(){
 	#Creating vector of correct data
-	cor<-c(0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0)#100
+	correct<-c(0, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0)
 	setwd("d:/data")
 	#Loading data
 	phenotypes <- clean(as.matrix(read.table("measurements_ordered.txt", sep="")))
-		#Testing here
+	#Testing here
 	res <- makebinary(phenotypes)
 	for(i in 1:ncol(phenotypes)){
-		if(res[100,i]!=cor[i]){
+		if(res[100,i]!=correct[i]){
 			stop("Wrong value for trait ",i,". Disconnecting for your safety.")
 		}
 	}
 	cat("Test passed. Makebinary ready to serve.\n")
 }
 
+
 #qtlbyttest_test()
+#makebinary_test()
+
