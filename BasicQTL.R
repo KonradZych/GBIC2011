@@ -23,6 +23,22 @@ clean<-function(mat){
 	mat
 }
 
+#makebinary
+#mat: matrix to be made binary
+#res: resulting binary matrix
+makebinary<-function(mat){
+	res<-matrix(0,nrow(mat),ncol(mat))
+	#Result matrix should have the same labels as input
+	rownames(res)<-rownames(mat, do.NULL = FALSE)
+	colnames(res)<-colnames(mat, do.NULL = FALSE)
+	#now using median (tres) as a treshold
+	for(h in 1:ncol(mat)){
+	    tres=median(mat[,h])
+		res[,h]<-(mat[,h]>tres)
+	}
+	res
+}
+
 #qtlbyttest
 #phenotypes: Matrix of row: individuals, columns: traits
 #genotypes: Matrix of row: individuals, columns: markers
@@ -40,18 +56,6 @@ qtlbyttest <- function(phenotypes,genotypes,trait){
 	res
 }
 
-#makebinary
-#mat: matrix to be made binary
-#res: resulting binary matrix
-makebinary<-function(mat){
-	res<-matrix(0,nrow(mat),ncol(mat))
-	#now using median (tres) as a treshold
-	for(h in 1:ncol(mat)){
-	    tres=median(mat[,h])
-		res[,h]<-(mat[,h]>tres)
-	}
-	res
-}
 
 #heatmapqtl
 #phenotypes: Matrix of row: individuals, columns: traits
@@ -61,9 +65,11 @@ makebinary<-function(mat){
 heatmapqtl <- function(phenotypes,genotypes){
 	output <- NULL
 	for(y in 1:ncol(phenotypes)){
-		output <-rbind(output,qtlmap(phenotypes,genotypes,y))
+		output <-rbind(output,qtlbyttest(phenotypes,genotypes,y))
 	}
 	output <- t(output)
+	rownames(output)<-colnames(genotypes, do.NULL = FALSE)
+	colnames(output)<-colnames(phenotypes, do.NULL = FALSE)
 	output
 }
 
@@ -71,46 +77,59 @@ heatmapqtl <- function(phenotypes,genotypes){
 #results: output array from heatmapqtl
 #phenotypes: Matrix of row: individuals, columns: traits (mind labels, they are crucial)
 #marker: specified marker (use 100 for current data)
-pathway<-function(results,phenotypes,marker){
+pathway<-function(results,marker){
 	path<-NULL
-	metabolites<-as.matrix(labels(phenotypes[marker,]))
 	vect<-results[marker,]
 	for(i in 1:ncol(results)){
 		if(max(vect)==0){break}
 		else{
 			res<-which(vect==max(vect))
-			path<-c(path,metabolites[res])
+			path<-c(path,colnames(result_binary)[res])
 			vect[res]<-0
 		}
 	}
 	path
 }
 
-#controller
-controller<-function(){
-	#Firstly, doing tests
-	#qtlbyttest_test() - what the hell is wrong here?!
-	makebinary_test()
-	#Load data
-	setwd("d:/data")
-	print("wd set")
-	phenotypes <- as.matrix(read.table("measurements_ordered.txt", sep=""))
-	print("phenotypes loaded")
-	genotypes <- as.matrix(read.table("genotypes_ordered.txt", sep=""))
-	print("genotypes loaded")
-	#Make binary matrix of phenotypes an store it in phenotypes_binary
-	phenotypes_binary<-makebinary(clean(phenotypes))
-	print("phenotypes_binary created")
-	#Make qtlmap (quantative) an store it in result_quantative
-	result_quantative<-heatmapqtl(phenotypes,genotypes)
-	print("result_quantative created")
-	#Make qtlmap (quantative) an store it in result_binary
-	result_binary<-heatmapqtl(phenotypes_binary,genotypes)
-	print("result_binary created")
-	#Create pathway using marker 100 for binary
-	path<-pathway(result_binary, phenotypes, 100)
-	print("path created")
-	path
+#makecorvector
+makecorvector <- function(results){
+	#cormatrixm and corvectorm are for Markers
+	cormatrixm <- cov(results,use="pairwise.complete.obs")
+	#making vector for markers
+	corvectorm <- NULL
+	corvectort <- NULL
+	for(i in 2:(ncol(cormatrixm)-1)){
+		corvectorm <- c(corvectorm,mean(cormatrixm[i-1,i],cormatrixm[i,i+1]))
+	}
+	corvectorm <- c(corvectorm,(cormatrixm[(ncol(cormatrixm)-1),(ncol(cormatrixm))])/2)
+	#cormatrixt and corvectort are for Traits
+	cormatrixt <- cov(t(results),use="pairwise.complete.obs")
+	#making vector for traits
+	for(i in 2:(ncol(cormatrixt)-1)){
+		corvectort <- c(corvectort,mean(cormatrixt[i-1,i],cormatrixt[i,i+1]))
+	}
+	corvectort <- c(corvectort,(cormatrixt[(ncol(cormatrixt)-1),(ncol(cormatrixt))])/2)
+	#makin matrix containing both
+	result <- matrix(0,length(corvectorm),length(corvectort))
+	for(i in 1:length(corvectorm)){
+		for(j in 1:length(corvectort)){
+			result[i,j]<-corvectorm[i]+corvectort[j]
+		}
+	}
+	result
+}
+
+#makepallete
+makepallete<-function(covmatrix){
+	crange <- max(c(covmatrix,abs(min(covmatrix))))
+	pallete <- matrix(0,nrow(covmatrix),ncol(covmatrix))
+	for(i in 1:nrow(covmatrix)){
+		for(j in 1:ncol(covmatrix)){
+		    print(covmatrix[i,j])
+			pallete[i,j]<-rgb((abs(covmatrix[i,j])/crange)*255,0,255-((abs(covmatrix[i,j])/crange)*255),maxColorValue=255)
+		}
+	}
+	pallete
 }
 
 qtlbyttest_test <- function(){
@@ -155,7 +174,33 @@ makebinary_test <- function(){
 	cat("Test passed. Makebinary ready to serve.\n")
 }
 
-
-#qtlbyttest_test()
-#makebinary_test()
+#controller
+controller<-function(){
+	#Firstly, doing tests
+	#qtlbyttest_test() - what the hell is wrong here?!
+	makebinary_test()
+	#Load data
+	setwd("d:/data")
+	print("wd set")
+	phenotypes <- as.matrix(read.table("measurements_ordered.txt", sep=""))
+	print("phenotypes loaded")
+	genotypes <- as.matrix(read.table("genotypes_ordered.txt", sep=""))
+	print("genotypes loaded")
+	#Make qtlmap (quantative) an store it in result_quantative
+	result_quantative<-heatmapqtl(phenotypes,genotypes)
+	print("result_quantative created")
+	#Make qtlmap (quantative) an store it in result_binary
+	result_binary<-heatmapqtl(makebinary(clean(phenotypes)),genotypes)
+	print("result_binary created")
+	#Create pathway using marker 100 for binary
+	path<-pathway(result_binary, 100)
+	print("path created")
+	#Creating covariance_matrix
+	covariance_matrix <- makecorvector(result_binary)
+	print("covariance_matrix created")
+	#Creating color_pallete
+	color_pallete <- makepallete(covariance_matrix)
+	#persp plot
+	persp(result_binary,col=color_pallete)
+}
 
