@@ -92,45 +92,128 @@ pathway<-function(results,marker){
 }
 
 #makecorvector
-makecorvector <- function(results){
+makecorvector <- function(mat){
 	#cormatrixm and corvectorm are for Markers
-	cormatrixm <- cov(results,use="pairwise.complete.obs")
+	cormatrixm <- cor(mat,use="pairwise.complete.obs")
 	#making vector for markers
 	corvectorm <- NULL
-	corvectort <- NULL
+	result <- NULL
 	for(i in 2:(ncol(cormatrixm)-1)){
 		corvectorm <- c(corvectorm,mean(cormatrixm[i-1,i],cormatrixm[i,i+1]))
 	}
 	corvectorm <- c(corvectorm,(cormatrixm[(ncol(cormatrixm)-1),(ncol(cormatrixm))])/2)
-	#cormatrixt and corvectort are for Traits
-	cormatrixt <- cov(t(results),use="pairwise.complete.obs")
-	#making vector for traits
-	for(i in 2:(ncol(cormatrixt)-1)){
-		corvectort <- c(corvectort,mean(cormatrixt[i-1,i],cormatrixt[i,i+1]))
+	for(i in 1:23){
+		result <- rbind(result,corvectorm)
 	}
-	corvectort <- c(corvectort,(cormatrixt[(ncol(cormatrixt)-1),(ncol(cormatrixt))])/2)
-	#makin matrix containing both
-	result <- matrix(0,length(corvectorm),length(corvectort))
-	for(i in 1:length(corvectorm)){
-		for(j in 1:length(corvectort)){
-			result[i,j]<-corvectorm[i]+corvectort[j]
+	result <- t(result)
+	result
+}
+
+#makepallete
+makepallete<-function(covmatrix, result){
+	crange <- max(c(covmatrix,abs(min(covmatrix))))
+	pallete <- matrix(0,nrow(covmatrix),ncol(covmatrix))
+	for(i in 1:nrow(covmatrix)){
+		for(j in 1:ncol(covmatrix)){
+			pallete[i,j]<-rgb((abs(covmatrix[i,j])/crange)*255,(abs((result[i,j])/max(result))*255),255-((abs(covmatrix[i,j])/crange)*255),maxColorValue=255)
+			#pallete[i,j] <- rgb((abs((result[i,j])/max(result))*255),255-(abs((result[i,j])/max(result))*255),0,maxColorValue=255)
+		}
+	}
+	pallete
+}
+
+#smoothie - it's not quite what I expected
+smoothie <- function(result){	
+	for(i in nrow(result)){
+		for(j in 1:9){
+			result[i,j] <- mean(result[i,1:j+9])
+		}
+		for(j in 10:(ncol(result)-9)){
+			result[i,j] <- mean(result[i,j-9:j+9])
+		}
+		for(j in (ncol(result)-9):(ncol(result))){
+			result[i,j] <- mean(result[i,j:(ncol(result))])
 		}
 	}
 	result
 }
 
-#makepallete
-makepallete<-function(covmatrix){
-	crange <- max(c(covmatrix,abs(min(covmatrix))))
-	pallete <- matrix(0,nrow(covmatrix),ncol(covmatrix))
-	for(i in 1:nrow(covmatrix)){
-		for(j in 1:ncol(covmatrix)){
-		    print(covmatrix[i,j])
-			pallete[i,j]<-rgb((abs(covmatrix[i,j])/crange)*255,0,255-((abs(covmatrix[i,j])/crange)*255),maxColorValue=255)
-		}
-	}
-	pallete
+#un_intonumeric
+un_intonumeric <- function(un_matrix){
+	inside <- un_matrix
+	#switching -, a, b to NA, 1, 2, respectively
+	un_matrix[which(un_matrix=="-")] <- NA
+	un_matrix[which(un_matrix=="a")] <- 1
+	un_matrix[which(un_matrix=="b")] <- 2
+	un_matrix <- as.numeric(un_matrix)
+	un_matrix <- matrix(un_matrix,nrow(inside),ncol(inside))
+	rownames(un_matrix)<-rownames(inside, do.NULL = FALSE)
+	colnames(un_matrix)<-colnames(inside, do.NULL = FALSE)
+	un_matrix
 }
+
+#un_findneighbors - 
+#un_findneighbors <- function(mat){
+	#un_covmatrix <- cor(un_matrix,use="pairwise.complete.obs")
+	#for(i in 1:nrow(un_covmatrix)){
+	#	un_covmatrix[i,i] <- -10
+	#}
+	#res2<-NULL
+	#result_m <- matrix(0,nrow(mat), ncol(mat))
+	#first <- which(colMeans(un_covmatrix)==min(colMeans(un_covmatrix)))[1]
+	#res <- first
+	#for(i in 2:ncol(un_covmatrix)-1){		
+	#	recent <- which(un_covmatrix[,first]==max(un_covmatrix[,first]))[1]
+	#	res2 <- c(res2,max(un_covmatrix[,first]))
+	#	res <- c(res,recent)
+	#	un_covmatrix[,first]<--10
+	#	un_covmatrix[first,]<--10
+	#	first <- recent
+	#}
+	#for(i in 1:nrow(un_covmatrix)-2){
+	#	res <- c(res,labels(which((un_covmatrix[i,(i+1):ncol(un_covmatrix)])==(sort(un_covmatrix[i,(i+1):ncol(un_covmatrix)],decreasing=TRUE)[1]))))
+	#}	
+	#print(length(res))
+	#for(i in 1:length(res)){
+	#	result_m[,i] <- mat[,res[i]]
+	#}
+	#print(res2)
+	#result_m
+#}
+
+#for(i in 1:150){
+#	ordered<-un_findneighbors(ordered)
+#}
+
+#un_order_chromosome - looks pretty cool, but needs polishing
+un_order_chromosome <- function(chrom_cor_matrix){
+	#chrom_cor_matrix <- cor(chrom_matrix, use="pairwise.complete.obs")
+	result <- NULL
+	current <- NULL
+	for(i in 1:ncol(chrom_cor_matrix)){
+		sorted <- sort(chrom_cor_matrix[i,],decreasing=TRUE)
+		for(j in 1:ncol(chrom_cor_matrix)){
+			current <- c(current,which(chrom_cor_matrix[i,]==(sorted[j])))
+		}
+		result <- rbind(result,current)
+		current <- NULL
+	}
+	output<-chrom_cor_matrix[,result[,11]]
+	output
+}
+
+#un_neighbor - work a bit here
+un_neighbor <- function(cor_matrix,groups){
+	r <- kmeans(cor_matrix,groups)
+	res <- NULL
+	for(i in 1:groups){
+		print(i)
+		print(un_cor[,which(as.numeric(r[[1]])==i),which(as.numeric(r[[1]])==i)])
+		res <- cbind(res,un_order_chromosome(un_cor[,which(as.numeric(r[[1]])==i)]))
+	}
+	res
+}
+
 
 qtlbyttest_test <- function(){
 	#Creating vector of correct data
@@ -195,12 +278,18 @@ controller<-function(){
 	#Create pathway using marker 100 for binary
 	path<-pathway(result_binary, 100)
 	print("path created")
-	#Creating covariance_matrix
-	covariance_matrix <- makecorvector(result_binary)
+	#Creating covariance_matrix out of two vectors, one for traits, another for markers
+	covariance_matrix <- makecorvector(genotypes)
 	print("covariance_matrix created")
 	#Creating color_pallete
-	color_pallete <- makepallete(covariance_matrix)
+	color_pallete <- makepallete(covariance_matrix, result_binary)
 	#persp plot
 	persp(result_binary,col=color_pallete)
+	#analyzing the unknown
+	setwd("d:/data")
+	un_matrix <- un_intonumeric(as.matrix(read.table("unknown_genotypes2.txt", sep="", header=TRUE)))
+	un_cor <- cor(un_matrix,use="pairwise.complete.obs")
+	#finding the neighbor 
+	un_findneighbors(un_cor,un_cor)
 }
 
