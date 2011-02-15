@@ -185,9 +185,16 @@ un_intonumeric <- function(un_matrix){
 #	ordered<-un_findneighbors(ordered)
 #}
 
+#un_most_common
+un_most_common <- function(vect){
+	for(i in 1:ncol(ord)){
+		print(labels(which(table(ord[,i])==max(table(ord[,i])))))
+	}
+}
+
 #un_order_chromosome - looks pretty cool, but needs polishing
-un_order_chromosome <- function(chrom_cor_matrix){
-	#chrom_cor_matrix <- cor(chrom_matrix, use="pairwise.complete.obs")
+un_order_chromosome <- function(chrom_matrix){
+	chrom_cor_matrix <- cor(chrom_matrix, use="pairwise.complete.obs")
 	result <- NULL
 	current <- NULL
 	for(i in 1:ncol(chrom_cor_matrix)){
@@ -198,18 +205,22 @@ un_order_chromosome <- function(chrom_cor_matrix){
 		result <- rbind(result,current)
 		current <- NULL
 	}
-	output<-chrom_cor_matrix[,result[,11]]
-	output
+	#output<-chrom_cor_matrix[,result[,11]]
+	#output
+	#result <- (result,1,un_most_common)
+	output <- colnames(chrom_matrix[,result[1,]])
+	output	
 }
 
 #un_neighbor - work a bit here
-un_neighbor <- function(cor_matrix,groups){
+un_neighbor <- function(un_matrix,groups){
+	cor_matrix <- cor(un_matrix,use="pairwise.complete.obs")
 	r <- kmeans(cor_matrix,groups)
 	res <- NULL
 	for(i in 1:groups){
 		print(i)
-		print(un_cor[,which(as.numeric(r[[1]])==i),which(as.numeric(r[[1]])==i)])
-		res <- cbind(res,un_order_chromosome(un_cor[,which(as.numeric(r[[1]])==i)]))
+		cur <- un_order_chromosome(cor_matrix[,which(as.numeric(r[[1]])==i)])
+		res <- cbind(res,un_matrix[,cur])
 	}
 	res
 }
