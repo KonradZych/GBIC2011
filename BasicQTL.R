@@ -205,10 +205,20 @@ un_order_chromosome <- function(chrom_matrix){
 		result <- rbind(result,current)
 		current <- NULL
 	}
-	#output<-chrom_cor_matrix[,result[,11]]
-	#output
-	#result <- (result,1,un_most_common)
-	output <- colnames(chrom_matrix[,result[1,]])
+	result2 <- result[1,1]
+	i<-1
+	j<-1
+	while(length(result2)<=ncol(result)){
+		print(result2)
+		for(k in result2){
+			if(k==result[i,j]){j<-j+1}
+		}
+		result2<-c(result2,result[i,j])
+		i<-result[i,j]
+		j<-2
+	}
+	print(result2)
+	output <- colnames(chrom_matrix[,result2])	
 	output	
 }
 
@@ -297,10 +307,14 @@ controller<-function(){
 	#persp plot
 	persp(result_binary,col=color_pallete)
 	#analyzing the unknown
-	setwd("d:/data")
-	un_matrix <- un_intonumeric(as.matrix(read.table("unknown_genotypes2.txt", sep="", header=TRUE)))
-	un_cor <- cor(un_matrix,use="pairwise.complete.obs")
+	setwd("D:/data")
+	un_matrix <- un_intonumeric(as.matrix(read.table("unknown_genotypes.txt", sep="", header=TRUE)))
 	#finding the neighbor 
-	un_findneighbors(un_cor,un_cor)
+	ord <- un_neighbor(un_matrix,10)
+	ord_cor <- cor(ord,use="pairwise.complete.obs")
+	image(ord_cor)
+	un_covariance_matrix <- makecorvector(ord)
+	un_color_pallete <- makepallete(ord, ord_cor)
+	persp(ord_cor,col=un_color_pallete)
 }
 
