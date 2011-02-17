@@ -1,67 +1,67 @@
 # Basic QTL Mapping functions
 # 
-# (c) 2011-2015 Konrad Zych
+#(c) 2011-2015 Konrad Zych
 # Version: 0.0.1
 #
 # Contains:
-#clean - Removing NA from data by replacing it with 0
+#clean - Removing NA from data matrix by replacing it with 0
 #qtlbyttest - Basic single marker mapping by using a t.test statistic (For RIL)
 #heatmapqtl - Creates data file concerning all traits and also image of it
 #pathway - creates probable pathway using values for specified marker
 #controller - AIO function
 
 #clean
-#mat: matrix to be cleaned
-clean<-function(mat){
-	for(h in 1:nrow(mat)){
-		for(w in 1:ncol(mat)){
-			if(is.na(mat[h,w])){
-				mat[h,w]<-0
+#matrix_to_be_cleaned: matrix containing data mixed with NA
+#returns: matrix_to_be_cleaned - the same matrix with NAs replaced with 0
+clean<-function(matrix_to_be_cleaned){
+	for(h in 1:nrow(matrix_to_be_cleaned)){
+		for(w in 1:ncol(matrix_to_be_cleaned)){
+			if(is.na(matrix_to_be_cleaned[h,w])){
+				matrix_to_be_cleaned[h,w]<-0
 			}
 		}
 	}
-	mat
+	matrix_to_be_cleaned
 }
 
 #makebinary
-#mat: matrix to be made binary
-#res: resulting binary matrix
-makebinary<-function(mat){
-	res<-matrix(0,nrow(mat),ncol(mat))
-	#Result matrix should have the same labels as input
-	rownames(res)<-rownames(mat, do.NULL = FALSE)
-	colnames(res)<-colnames(mat, do.NULL = FALSE)
-	#now using median (tres) as a treshold
-	for(h in 1:ncol(mat)){
-	    tres=median(mat[,h])
-		res[,h]<-(mat[,h]>tres)
+#matrix_to_be_made_binary: matrix containing data
+#returns: output - matrix containing 0s (value below the treshold) and 1 (value above the treshold) currently, the treshold is median
+makebinary<-function(matrix_to_be_made_binary){
+	output<-matrix(0,nrow(matrix_to_be_made_binary),ncol(matrix_to_be_made_binary))
+	#resulting matrix should have the same labels as input
+	rownames(output)<-rownames(matrix_to_be_made_binary, do.NULL = FALSE)
+	colnames(output)<-colnames(matrix_to_be_made_binary, do.NULL = FALSE)
+	#using median as a treshold value
+	for(h in 1:ncol(matrix_to_be_made_binary)){
+	    tres=median(matrix_to_be_made_binary[,h])
+		output[,h]<-(matrix_to_be_made_binary[,h]>tres)
 	}
-	res
+	output
 }
 
 #qtlbyttest
 #phenotypes: Matrix of row: individuals, columns: traits
 #genotypes: Matrix of row: individuals, columns: markers
 #trait: integer value of the column to analyse
-#return: Vector of significance (-LOD10) of linkage to that marker
+#return: output - Vector of significance (-LOD10) of linkage to that marker
 qtlbyttest <- function(phenotypes,genotypes,trait){
-	res<-NULL
+	output<-NULL
 	phenotypes<-clean(phenotypes)
 	genotypes<-clean(genotypes)
 	for(m in 1:ncol(genotypes)){
 		pheno_class1 <- phenotypes[which(genotypes[,m]==1),trait]
 		pheno_class2 <- phenotypes[which(genotypes[,m]==2),trait]
-		res <- c(res,-log10(t.test(pheno_class1,pheno_class2)[[3]]))
+		output <- c(output,-log10(t.test(pheno_class1,pheno_class2)[[3]]))
 	}
-	res
+	output
 }
 
 
 #heatmapqtl
 #phenotypes: Matrix of row: individuals, columns: traits
 #genotypes: Matrix of row: individuals, columns: markers
-#result: name of the resulting array
-#return: translated matrix of results of qtlbyttest
+#return: output - translated matrix of results of qtlbyttest
 heatmapqtl <- function(phenotypes,genotypes){
 	output <- NULL
 	for(y in 1:ncol(phenotypes)){
@@ -77,65 +77,69 @@ heatmapqtl <- function(phenotypes,genotypes){
 #results: output array from heatmapqtl
 #phenotypes: Matrix of row: individuals, columns: traits (mind labels, they are crucial)
 #marker: specified marker (use 100 for current data)
+#return: output - proposed pathway (linear!) based on height of peak from marker 100
 pathway<-function(results,marker){
-	path<-NULL
+	output<-NULL
 	vect<-results[marker,]
 	for(i in 1:ncol(results)){
 		if(max(vect)==0){break}
 		else{
-			res<-which(vect==max(vect))
-			path<-c(path,colnames(result_binary)[res])
-			vect[res]<-0
+			output<-which(vect==max(vect))
+			output<-c(output,colnames(result_binary)[output])
+			vect[output]<-0
 		}
 	}
-	path
+	output
 }
 
 #makecorvector
-makecorvector <- function(mat){
-	#cormatrixm and corvectorm are for Markers
-	cormatrixm <- cor(mat,use="pairwise.complete.obs")
+#first_matrix: 
+#two_matrices:
+#second_matrix:
+#return: output - 
+makecorvector <- function(first_matrix,two_matrices=0,second_matrix=NULL){
+	#first_matrix_cor and first_matrix_corv are for Markers
+	first_matrix_cor <- cor(first_matrix,use="pairwise.complete.obs")
 	#making vector for markers
-	corvectorm <- NULL
-	result <- NULL
-	for(i in 2:(ncol(cormatrixm)-1)){
-		corvectorm <- c(corvectorm,mean(cormatrixm[i-1,i],cormatrixm[i,i+1]))
+	first_matrix_corv <- NULL
+	output <- NULL
+	for(i in 2:(ncol(first_matrix_cor)-1)){
+		first_matrix_corv <- c(first_matrix_corv,mean(first_matrix_cor[i-1,i],first_matrix_cor[i,i+1]))
 	}
-	corvectorm <- c(corvectorm,(cormatrixm[(ncol(cormatrixm)-1),(ncol(cormatrixm))])/2)
+	first_matrix_corv <- c(first_matrix_corv,(first_matrix_cor[(ncol(first_matrix_cor)-1),(ncol(first_matrix_cor))])/2)
 	for(i in 1:23){
-		result <- rbind(result,corvectorm)
+		output <- rbind(output,first_matrix_corv)
 	}
-	result <- t(result)
-	result
+	output <- t(output)
+	if(two_matrices==1){
+		for(i in 1:nrow(output)){
+			for(j in 1:ncol(output)){
+				output[i,j]<-output[i,j]+second_matrix[i,j]
+			}
+		}
+	}
+	output
 }
 
-#makepallete
-makepallete<-function(covmatrix, result){
-	crange <- max(c(covmatrix,abs(min(covmatrix))))
-	pallete <- matrix(0,nrow(covmatrix),ncol(covmatrix))
-	for(i in 1:nrow(covmatrix)){
-		for(j in 1:ncol(covmatrix)){
-			pallete[i,j]<-rgb((abs(covmatrix[i,j])/crange)*255,(abs((result[i,j])/max(result))*255),255-((abs(covmatrix[i,j])/crange)*255),maxColorValue=255)
-			#pallete[i,j] <- rgb((abs((result[i,j])/max(result))*255),255-(abs((result[i,j])/max(result))*255),0,maxColorValue=255)
+#make_topo_pallete
+make_topo_pallete <- function(result_matrix){
+	cur_mean <- mean(result_matrix)
+	cur_sd <- mean(sd(result_matrix))
+	cur_range <- abs(max(result_matrix)-min(result_matrix))
+	topo_pallete<-matrix(0,nrow(result_matrix),ncol(result_matrix))
+	for(i in 1:nrow(result_matrix)){
+		for(j in 1:ncol(result_matrix)){
+			if(result_matrix[i,j]<(cur_mean-cur_sd)){
+				topo_pallete[i,j]<-rgb(0,0,abs(result_matrix[i,j]/cur_range)*255,maxColorValue=255)
+			}else if((result_matrix[i,j]>(cur_mean+cur_sd))){
+				topo_pallete[i,j]<-rgb(abs(result_matrix[i,j]/cur_range)*255,0,0,maxColorValue=255)
+			}else{
+				topo_pallete[i,j]<-rgb(255-abs(result_matrix[i,j]/cur_range)*255,0,abs(result_matrix[i,j]/cur_range)*255,maxColorValue=255)
+			}
+			
 		}
 	}
-	pallete
-}
-
-#smoothie - it's not quite what I expected
-smoothie <- function(result){	
-	for(i in nrow(result)){
-		for(j in 1:9){
-			result[i,j] <- mean(result[i,1:j+9])
-		}
-		for(j in 10:(ncol(result)-9)){
-			result[i,j] <- mean(result[i,j-9:j+9])
-		}
-		for(j in (ncol(result)-9):(ncol(result))){
-			result[i,j] <- mean(result[i,j:(ncol(result))])
-		}
-	}
-	result
+	topo_pallete
 }
 
 #un_intonumeric
@@ -152,84 +156,63 @@ un_intonumeric <- function(un_matrix){
 	un_matrix
 }
 
-#un_findneighbors - 
-#un_findneighbors <- function(mat){
-	#un_covmatrix <- cor(un_matrix,use="pairwise.complete.obs")
-	#for(i in 1:nrow(un_covmatrix)){
-	#	un_covmatrix[i,i] <- -10
-	#}
-	#res2<-NULL
-	#result_m <- matrix(0,nrow(mat), ncol(mat))
-	#first <- which(colMeans(un_covmatrix)==min(colMeans(un_covmatrix)))[1]
-	#res <- first
-	#for(i in 2:ncol(un_covmatrix)-1){		
-	#	recent <- which(un_covmatrix[,first]==max(un_covmatrix[,first]))[1]
-	#	res2 <- c(res2,max(un_covmatrix[,first]))
-	#	res <- c(res,recent)
-	#	un_covmatrix[,first]<--10
-	#	un_covmatrix[first,]<--10
-	#	first <- recent
-	#}
-	#for(i in 1:nrow(un_covmatrix)-2){
-	#	res <- c(res,labels(which((un_covmatrix[i,(i+1):ncol(un_covmatrix)])==(sort(un_covmatrix[i,(i+1):ncol(un_covmatrix)],decreasing=TRUE)[1]))))
-	#}	
-	#print(length(res))
-	#for(i in 1:length(res)){
-	#	result_m[,i] <- mat[,res[i]]
-	#}
-	#print(res2)
-	#result_m
-#}
-
-#for(i in 1:150){
-#	ordered<-un_findneighbors(ordered)
-#}
-
-#un_most_common
-un_most_common <- function(vect){
-	for(i in 1:ncol(ord)){
-		print(labels(which(table(ord[,i])==max(table(ord[,i])))))
+#un_best_clustering
+un_best_clustering <- function(cor_matrix,nr_iterations){
+	res <- NULL
+	map <- matrix(0,nrow(cor_matrix),ncol(cor_matrix))
+	output <- NULL
+	for(i in 1:nr_iterations){
+		r <- kmeans(cor_matrix,1)
+		res <- rbind(res,(as.numeric(r[[1]])))
 	}
+	print("OK nr_iterations")
+	print(dim(res))
+	for(i in 1:nr_iterations){
+		for(j in 1){
+			for(k in which(res[i,]==j)){
+				for(l in which(res[i,]==j)){
+					map[k,l] <- map[k,l] + 1
+				}
+			}
+		}
+	}
+	print("OK map")
+	#output<-kmeans(map,10)
+	#output
+	map
 }
 
-#un_order_chromosome - looks pretty cool, but needs polishing
+#un_order_chromosome 
 un_order_chromosome <- function(chrom_matrix){
 	chrom_cor_matrix <- cor(chrom_matrix, use="pairwise.complete.obs")
-	result <- NULL
+	result <- 1
 	current <- NULL
+	chrom_cor_matrix[,1]<--10
 	for(i in 1:ncol(chrom_cor_matrix)){
-		sorted <- sort(chrom_cor_matrix[i,],decreasing=TRUE)
-		for(j in 1:ncol(chrom_cor_matrix)){
-			current <- c(current,which(chrom_cor_matrix[i,]==(sorted[j])))
-		}
-		result <- rbind(result,current)
-		current <- NULL
+		chrom_cor_matrix[i,i]<--10
 	}
-	result2 <- result[1,1]
 	i<-1
-	j<-1
-	while(length(result2)<=ncol(result)){
-		print(result2)
-		for(k in result2){
-			if(k==result[i,j]){j<-j+1}
-		}
-		result2<-c(result2,result[i,j])
-		i<-result[i,j]
-		j<-2
+	while(length(result)<ncol(chrom_cor_matrix)){
+		j <- which(chrom_cor_matrix[i,]==max(chrom_cor_matrix[i,]))[1]
+		result<-c(result,j)
+		chrom_cor_matrix[,j]<--10
+		chrom_cor_matrix[j,i]<--10
+		i<-j
 	}
-	print(result2)
-	output <- colnames(chrom_matrix[,result2])	
+	output <- colnames(chrom_matrix[,result])
 	output	
 }
 
 #un_neighbor - work a bit here
-un_neighbor <- function(un_matrix,groups){
+un_neighbor <- function(un_matrix,nr_iterations=1000,groups=10){
 	cor_matrix <- cor(un_matrix,use="pairwise.complete.obs")
-	r <- kmeans(cor_matrix,groups)
+	print("OK cor_matrix")
+	r <- un_best_clustering(cor_matrix,nr_iterations)
+	print("OK un_best_clustering")
 	res <- NULL
 	for(i in 1:groups){
 		print(i)
-		cur <- un_order_chromosome(cor_matrix[,which(as.numeric(r[[1]])==i)])
+		cur <- un_order_chromosome(cor_matrix[,which(r[[1]]==i)])
 		res <- cbind(res,un_matrix[,cur])
 	}
 	res
@@ -284,11 +267,11 @@ controller<-function(){
 	#qtlbyttest_test() - what the hell is wrong here?!
 	makebinary_test()
 	#Load data
-	setwd("d:/data")
+	setwd("D:/data")
 	print("wd set")
-	phenotypes <- as.matrix(read.table("measurements_ordered.txt", sep=""))
+	phenotypes <- as.matrix(read.table("phenotypes.txt", sep=""))
 	print("phenotypes loaded")
-	genotypes <- as.matrix(read.table("genotypes_ordered.txt", sep=""))
+	genotypes <- as.matrix(read.table("genotypes.txt", sep=""))
 	print("genotypes loaded")
 	#Make qtlmap (quantative) an store it in result_quantative
 	result_quantative<-heatmapqtl(phenotypes,genotypes)
@@ -300,21 +283,18 @@ controller<-function(){
 	path<-pathway(result_binary, 100)
 	print("path created")
 	#Creating covariance_matrix out of two vectors, one for traits, another for markers
-	covariance_matrix <- makecorvector(genotypes)
+	covariance_matrix <- makecorvector(genotypes,1,result_binary)
 	print("covariance_matrix created")
 	#Creating color_pallete
-	color_pallete <- makepallete(covariance_matrix, result_binary)
+	color_pallete <- make_topo_pallete(covariance_matrix)
 	#persp plot
 	persp(result_binary,col=color_pallete)
 	#analyzing the unknown
 	setwd("D:/data")
 	un_matrix <- un_intonumeric(as.matrix(read.table("unknown_genotypes.txt", sep="", header=TRUE)))
 	#finding the neighbor 
-	ord <- un_neighbor(un_matrix,10)
+	ord <- un_neighbor(un_matrix,500)
 	ord_cor <- cor(ord,use="pairwise.complete.obs")
 	image(ord_cor)
-	un_covariance_matrix <- makecorvector(ord)
-	un_color_pallete <- makepallete(ord, ord_cor)
-	persp(ord_cor,col=un_color_pallete)
-}
 
+}
