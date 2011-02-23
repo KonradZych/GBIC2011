@@ -174,30 +174,38 @@ un_intonumeric <- function(un_matrix){
 	un_matrix
 }
 
+#un_rec
+un_rec <- function(chrom_vector1){
+	print("un_rec starting")
+	result <- as.vector(matrix(0,1,length(chrom_vector1)))
+	for(k in 1:length(chrom_vector1)){
+		if(is.na(chrom_vector1[k])||is.na(chrom_vector2[k])){
+			rec <- 0
+		}else if(chrom_matrix[k,j]==chrom_matrix[k,i]){
+			rec <- 0
+		}else{
+			rec <- 1
+		}
+	result <- result[k] + rec
+	}
+	print("un_rec done")
+}
+
 #un_recombination - instead of cor use recombination, very very slow (triple for - Danny won't like it)
 #input - matrix of data
 #return - matrix of recombination values between COLUMNS
 un_recombination<-function(chrom_matrix){
-	output <- matrix(0,ncol(chrom_matrix),ncol(chrom_matrix))
-	#triple for, jupi!
-	for(i in 1:ncol(chrom_matrix)){
-		cat("Analysing column ",i,"\n")
-		for(j in 1:ncol(chrom_matrix)){
-			for(k in 1:nrow(chrom_matrix)){
-				if(is.na(chrom_matrix[i,j])||is.na(chrom_matrix[i,j])){
-					rec <- 0
-				}else if(chrom_matrix[k,j]==chrom_matrix[k,i]){
-					rec <- 0
-				}else{
-					rec <- 1
-				}
-				output[i,j] <- output[i,j] + rec
-			}
-		}	
-	}
+	#print("un_recombination starting")
+	output <- cor(chrom_matrix,use="pairwise.complete.obs")
+	#output <- NULL
+	#for(i in 1:ncol(chrom_matrix)){
+	#	output <- cbind(output,un_rec(chrom_matrix[,i],apply(chrom_matrix,2,)))
+	#}
+	#output <- cbind(un_rec(chrom_matrix,apply(chrom_matrix,2,)))
+	#output <- cbind(output,apply(chrom_matrix,2,un_rec))
 	#beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
-	output <- (100-output)/100
-#line 200!
+	#output <- (100-output)/100
+	#print("un_recombination done")
 	output
 }
 
@@ -274,21 +282,30 @@ un_order_chromosome <- function(chrom_matrix){
 	for(i in 1:ncol(chrom_matrix)){
 		cat("Starting iteration ",i,"\n")
 		chrom_cor_matrix <- un_recombination(output)
-		result <- 1
+		first_free <- 1
+		last_free <- ncol(chrom_cor_matrix)
+		col_means <- apply(chrom_cor_matrix,2,mean)
+		result <- as.vector(matrix(0,1,last_free))
+		result[first_free] <- which(col_means==min(col_means))
+		result[last_free] <- which(col_means==sort(col_means)[2])
+		chrom_cor_matrix[result[first_free],]<--10
+		chrom_cor_matrix[result[last_free],]<--10
 		current <- NULL
-		chrom_cor_matrix[,1]<--10
-		for(i in 1:ncol(chrom_cor_matrix)){
-			chrom_cor_matrix[i,i]<--10
+		for(i in 2:ncol(chrom_cor_matrix)-1){
+			first_free_column <- chrom_cor_matrix[,result[first_free]]
+			last_free_column <- chrom_cor_matrix[,result[last_free]]
+			if(max(first_free_column) > max(last_free_column)){
+				result[first_free+1] <- which(first_free_column==max(first_free_column))[1]
+				chrom_cor_matrix[result[first_free],] <- -10
+				print(first_free)
+				first_free <- first_free+1
+			}else{
+				result[last_free-1] <- which(last_free_column==max(last_free_column))[1]
+				chrom_cor_matrix[result[last_free],] <- -10
+				print(last_free)
+				last_free <-last_free-1
+			}
 		}
-		i<-1
-		while(length(result)<ncol(chrom_cor_matrix)){
-			j <- which(chrom_cor_matrix[i,]==max(chrom_cor_matrix[i,]))[1]
-			result<-c(result,j)
-			chrom_cor_matrix[,j]<--10
-			chrom_cor_matrix[j,i]<--10
-			i<-j
-		}
-		output <- chrom_matrix[,result]
 	}
 	print("Iterations done,saving result")
 	output <- colnames(chrom_matrix[,result])
@@ -301,27 +318,39 @@ un_order_chromosome <- function(chrom_matrix){
 #return: matrix of the same data with rigth order of columns
 un_neighbor <- function(un_matrix,nr_iterations=1000,groups=5){
 	print("Running un_best_clustering")
-	r <- un_best_clustering(un_matrix,nr_iterations,groups)
-		for(i in 1:nrow(r)){
-		for(j in 1:ncol(r)){
-			if(r[i,j]<20){r[i,j]<-0}
-		}
-	}
+	#r <- un_best_clustering(un_matrix,nr_iterations,groups)
+	#for(i in 1:nrow(r)){
+	#	for(j in 1:ncol(r)){
+	#		if(r[i,j]<20){r[i,j]<-0}
+	#	}
+	#}
 	print("un_best_clustering done, running un_best_clustering")
-	r <- un_best_clustering(r,nr_iterations,groups)
+	#r <- un_best_clustering(r,nr_iterations,groups)
 	print("un_best_clustering done, final clustering")
-	r<-kmeans(r,groups)
+	#r<-kmeans(r,groups)
 	print("Final clustering done, running un_order_chromosome")
 	res <- NULL
-	for(i in 1:groups){
-		cat("Segregating chromosome: ",i,"\n")
-		cur <- un_order_chromosome(un_matrix[,which(r[[1]]==i)])
+	#for(i in 1:groups){
+		#cat("Segregating chromosome: ",i,"\n")
+		cur <- un_order_chromosome(un_matrix)#[,which(r[[1]]==i)])
 		res <- cbind(res,un_matrix[,cur])
-	}
+	#}
 	print("un_order_chromosome done, returning result")
 	res
 }
 
+#un_neighbor2 - heart of analysis!
+un_neighbor2<-function(chrom_matrix){
+	cor_matrix <- un_recombination(chrom_matrix)
+	result <- cor_matrix
+	row_means <- apply(result,1,mean)
+	result[1,] <- cor_matrix[which(row_means==min(row_means))]
+	for(i in 1:5){
+		while(max_cor>0.25){
+		+
+		}
+	}
+}
 
 qtlbyttest_test <- function(){
 	#Creating vector of correct data
@@ -370,7 +399,7 @@ makebinary_test <- function(){
 #1 - basic qtl map, using data from gene expression (phenotypes.txt) and genotyping (genotypes.txt)  
 #
 makebinary_test()
-setwd("G:/git")
+setwd("D:/data")
 phenotypes <- as.matrix(read.table("phenotypes.txt", sep=""))
 genotypes <- as.matrix(read.table("genotypes.txt", sep=""))
 result_binary<-heatmapqtl(makebinary(clean(phenotypes)),genotypes)
@@ -381,16 +410,16 @@ persp(result_binary,col=color_pallete)
 #
 #2 - obtaining simple pathawy from observing marker 100 peak
 #
-setwd("G:/git")
+setwd("D:/data")
 phenotypes <- as.matrix(read.table("phenotypes.txt", sep=""))
 genotypes <- as.matrix(read.table("genotypes.txt", sep=""))
 path<-pathway(result_binary, 100)
 #
 #3 - recreating genemap from messed data
 #
-setwd("G:/git")
+setwd("D:/data")
 un_matrix <- un_intonumeric(as.matrix(read.table("genotypes_multitrait.txt", sep="", header=TRUE)))
 un_result<-un_drop_markers(un_matrix)
-ord <- un_neighbor(un_result,1000,5)
+ord <- un_neighbor(un_result,1000,20)
 ord_recombination <- un_recombination(ord)
-image(ord_cor)
+image(ord_recombination)
