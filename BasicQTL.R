@@ -195,17 +195,25 @@ un_rec <- function(chrom_vector1){
 #input - matrix of data
 #return - matrix of recombination values between COLUMNS
 un_recombination<-function(chrom_matrix){
-	#print("un_recombination starting")
-	output <- cor(chrom_matrix,use="pairwise.complete.obs")
-	#output <- NULL
-	#for(i in 1:ncol(chrom_matrix)){
-	#	output <- cbind(output,un_rec(chrom_matrix[,i],apply(chrom_matrix,2,)))
-	#}
-	#output <- cbind(un_rec(chrom_matrix,apply(chrom_matrix,2,)))
-	#output <- cbind(output,apply(chrom_matrix,2,un_rec))
-	#beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
+output <- matrix(0,ncol(chrom_matrix),ncol(chrom_matrix))
+#triple for, jupi!
+	for(i in 1:ncol(chrom_matrix)){
+		cat("Analysing column ",i,"\n")
+		for(j in 1:ncol(chrom_matrix)){
+			for(k in 1:nrow(chrom_matrix)){
+				if(is.na(chrom_matrix[i,j])||is.na(chrom_matrix[i,j])){
+					rec <- 0
+				}else if(chrom_matrix[k,j]==chrom_matrix[k,i]){
+				rec <- 0
+				}else{
+				rec <- 1
+				}
+				output[i,j] <- output[i,j] + rec
+			}
+		}
+	}
+#beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
 	#output <- (100-output)/100
-	#print("un_recombination done")
 	output
 }
 
@@ -275,11 +283,11 @@ un_best_clustering <- function(chrom_matrix,nr_iterations,groups=10){
 #un_order_chromosome - ordering markers inside one group (chromosome)
 #input - matrix of data (specified fragment to be sorted inside)
 #return - names of columns in sorted order
-un_order_chromosome <- function(chrom_matrix){
+un_order_chromosomeold <- function(chrom_matrix){
 	cat(ncol(chrom_matrix)," markers\n")
 	output<-chrom_matrix
 	#sorting is made in number of iterations equal to number of columns
-	for(i in 1:ncol(chrom_matrix)){
+	for(i in 1){#:ncol(chrom_matrix)){
 		cat("Starting iteration ",i,"\n")
 		chrom_cor_matrix <- un_recombination(output)
 		first_free <- 1
@@ -312,6 +320,40 @@ un_order_chromosome <- function(chrom_matrix){
 	output	
 }
 
+un_order_chromosome <- function(reco_matrix){
+	#for(i in 1:ncol(chrom_matrix)){
+		#reco_matrix <- un_recombination(chrom_matrix)
+		col_means <- apply(reco_matrix,2,mean)
+		result <- as.vector(matrix(0,1,ncol(reco_matrix)))
+		if(ncol(reco_matrix)%%2==0){
+			center <- ncol(reco_matrix)/2
+		}else{
+			center <- (ncol(reco_matrix)+1)/2
+		}
+		first_free <- center
+		last_free <- center
+		result[center] <- which(col_means==min(col_means))
+		reco_matrix[,result[center]] <- -10
+		for(i in sort(reco_matrix[result[center],],decreasing=TRUE)){
+			cur <- which(i==reco_matrix[result[center],])[1]
+			cur_first <- reco_matrix[result[first_free],cur]
+			cur_last <- reco_matrix[result[last_free],cur]
+			cat(i,":",cur,"\n")
+			if(cur_first>cur_last){
+				first_free <- first_free-1
+				result[first_free] <- cur_first
+				reco_matrix[,cur] <- -10
+			}else{
+				last_free <- last_free+1
+				result[last_free] <- cur_last
+				reco_matrix[,cur] <- -10
+			}
+		}
+		result
+	#}
+}
+
+
 #un_neighbor - heart of analysis!
 #input: matrix of data with wrongly ordered columns, to be clustered, sorted inside groups, nr_iterations (int) groups(int)
 #line 300!
@@ -340,16 +382,19 @@ un_neighbor <- function(un_matrix,nr_iterations=1000,groups=5){
 }
 
 #un_neighbor2 - heart of analysis!
-un_neighbor2<-function(chrom_matrix){
-	cor_matrix <- un_recombination(chrom_matrix)
-	result <- cor_matrix
-	row_means <- apply(result,1,mean)
-	result[1,] <- cor_matrix[which(row_means==min(row_means))]
-	for(i in 1:5){
-		while(max_cor>0.25){
-		+
-		}
+un_neighbor2<-function(input){
+	reco_matrix<-input
+	j<-ncol(reco_matrix)
+	i<-1
+	for(i in 1:4){
+		cur_col <- reco_matrix[,1]
+		cur<-which(cur_col<(mean(cur_col)))
+		reco_matrix <- reco_matrix[-cur,-cur]
+		j<-ncol(reco_matrix)
+		cat(i,":",j," : ",length(cur)," : ",cur,"\n")
+		i<-i+1
 	}
+	cat(i,":",j," : ",ncol(reco_matrix)," : ",colnames(reco_matrix),"\n")
 }
 
 qtlbyttest_test <- function(){
@@ -420,6 +465,9 @@ path<-pathway(result_binary, 100)
 setwd("D:/data")
 un_matrix <- un_intonumeric(as.matrix(read.table("genotypes_multitrait.txt", sep="", header=TRUE)))
 un_result<-un_drop_markers(un_matrix)
+un_ord<-un_order_chromosome(un_reco)
+un_rec_cor<-cor(un_matrix,use=)
+un_reco <- un_recombination(un_result)
 ord <- un_neighbor(un_result,1000,20)
 ord_recombination <- un_recombination(ord)
 image(ord_recombination)
