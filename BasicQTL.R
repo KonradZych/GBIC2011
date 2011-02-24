@@ -2,6 +2,7 @@
 # 
 #(c) 2011-2015 Konrad Zych
 # Version: 0.0.1
+#Sweave
 #
 # Contains:
 #clean - Removing NA from data matrix by replacing it with 0
@@ -175,20 +176,19 @@ un_intonumeric <- function(un_matrix){
 }
 
 #un_rec
-un_rec <- function(chrom_vector1){
+un_rec <- function(chrom_vector){
 	print("un_rec starting")
-	result <- as.vector(matrix(0,1,length(chrom_vector1)))
-	for(k in 1:length(chrom_vector1)){
-		if(is.na(chrom_vector1[k])||is.na(chrom_vector2[k])){
+	result <- as.vector(matrix(0,1,length(chrom_vector)))
+	for(k in 1:length(chrom_vector)){
+		if(is.na(chrom_matrix[i,j])||is.na(chrom_matrix[i,j])){
 			rec <- 0
 		}else if(chrom_matrix[k,j]==chrom_matrix[k,i]){
 			rec <- 0
 		}else{
 			rec <- 1
 		}
-	result <- result[k] + rec
+		output[i,j] <- output[i,j] + rec
 	}
-	print("un_rec done")
 }
 
 #un_recombination - instead of cor use recombination, very very slow (triple for - Danny won't like it)
@@ -200,20 +200,13 @@ output <- matrix(0,ncol(chrom_matrix),ncol(chrom_matrix))
 	for(i in 1:ncol(chrom_matrix)){
 		cat("Analysing column ",i,"\n")
 		for(j in 1:ncol(chrom_matrix)){
-			for(k in 1:nrow(chrom_matrix)){
-				if(is.na(chrom_matrix[i,j])||is.na(chrom_matrix[i,j])){
-					rec <- 0
-				}else if(chrom_matrix[k,j]==chrom_matrix[k,i]){
-				rec <- 0
-				}else{
-				rec <- 1
-				}
-				output[i,j] <- output[i,j] + rec
-			}
+			
 		}
 	}
 #beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
 	#output <- (100-output)/100
+	colnames(output)<-colnames(chrom_matrix, do.NULL = FALSE)
+	output <- output/ncol(chrom_matrix)*100
 	output
 }
 
@@ -248,12 +241,29 @@ un_drop_markers <- function(chrom_matrix,treshold=0.25){
 	chrom_matrix
 }
 
+#un_remove_background
+un_remove_background <- function(cur_matrix,s1,s2){
+	t1 <- mean(cur_matrix)-2*mean(sd(cur_matrix))
+	t2 <- mean(cur_matrix)+mean(sd(cur_matrix))
+	for(i in 1:nrow(cur_matrix)){
+		for(j in 1:ncol(cur_matrix)){
+			if(cur_matrix[i,j]<t1){
+				cur_matrix[i,j]<-cur_matrix[i,j]*s1
+			}else if(cur_matrix[i,j]>t2){
+				cur_matrix[i,j]<-cur_matrix[i,j]*s2
+			}
+		}
+	}
+	cur_matrix
+}
+
 #un_best_clustering - needs improvment really bad! quadro-for!:D - making spceified number of clustering of data
 #then producing a matrix of points, udes later for further classification
 #input - matrix of data, number of iterations(int), number of groups(int)
 #return - matrix of numbers (0-nr_iterations)
 un_best_clustering <- function(chrom_matrix,nr_iterations,groups=10){
-	cor_matrix <- un_recombination(chrom_matrix)
+	cor_matrix <- cor(chrom_matrix,use="pairwise.complete.obs")
+	cor_matrix <- un_remove_background(cor_matrix,-10,10)
 	print("un_best_clustering starting")
 	res <- NULL
 	map <- matrix(0,nrow(cor_matrix),ncol(cor_matrix))
@@ -274,6 +284,7 @@ un_best_clustering <- function(chrom_matrix,nr_iterations,groups=10){
 			}
 		}
 	}
+	map <- un_remove_background(map,0,10)
 	print("pointing done, returning output")
 	#matrix should inherit colnames from input
 	colnames(map)<-colnames(chrom_matrix, do.NULL = FALSE)
@@ -283,13 +294,13 @@ un_best_clustering <- function(chrom_matrix,nr_iterations,groups=10){
 #un_order_chromosome - ordering markers inside one group (chromosome)
 #input - matrix of data (specified fragment to be sorted inside)
 #return - names of columns in sorted order
-un_order_chromosomeold <- function(chrom_matrix){
+un_order_chromosome_by_cor <- function(chrom_matrix){
 	cat(ncol(chrom_matrix)," markers\n")
 	output<-chrom_matrix
 	#sorting is made in number of iterations equal to number of columns
-	for(i in 1){#:ncol(chrom_matrix)){
+	for(i in 1:ncol(chrom_matrix)){
 		cat("Starting iteration ",i,"\n")
-		chrom_cor_matrix <- un_recombination(output)
+		chrom_cor_matrix <- cor(output,use="pairwise.complete.obs")
 		first_free <- 1
 		last_free <- ncol(chrom_cor_matrix)
 		col_means <- apply(chrom_cor_matrix,2,mean)
@@ -305,12 +316,10 @@ un_order_chromosomeold <- function(chrom_matrix){
 			if(max(first_free_column) > max(last_free_column)){
 				result[first_free+1] <- which(first_free_column==max(first_free_column))[1]
 				chrom_cor_matrix[result[first_free],] <- -10
-				print(first_free)
 				first_free <- first_free+1
 			}else{
 				result[last_free-1] <- which(last_free_column==max(last_free_column))[1]
 				chrom_cor_matrix[result[last_free],] <- -10
-				print(last_free)
 				last_free <-last_free-1
 			}
 		}
@@ -320,9 +329,14 @@ un_order_chromosomeold <- function(chrom_matrix){
 	output	
 }
 
-un_order_chromosome <- function(reco_matrix){
+un_order_chromosome_by_reco <- function(chrom_matrix){
+	output<-chrom_matrix
 	#for(i in 1:ncol(chrom_matrix)){
-		#reco_matrix <- un_recombination(chrom_matrix)
+		reco_matrix <- un_recombination(chrom_matrix)
+		#reco_matrix <- (100-100*cor(output,use="pairwise.complete.obs"))
+		for(j in 1:ncol(reco_matrix)){
+			reco_matrix[j,j]<-200
+		}
 		col_means <- apply(reco_matrix,2,mean)
 		result <- as.vector(matrix(0,1,ncol(reco_matrix)))
 		if(ncol(reco_matrix)%%2==0){
@@ -333,51 +347,64 @@ un_order_chromosome <- function(reco_matrix){
 		first_free <- center
 		last_free <- center
 		result[center] <- which(col_means==min(col_means))
-		reco_matrix[,result[center]] <- -10
-		for(i in sort(reco_matrix[result[center],],decreasing=TRUE)){
-			cur <- which(i==reco_matrix[result[center],])[1]
+		cat("Center:",center,"value:",which(col_means==min(col_means)),"\n")
+		reco_matrix[,result[center]] <- 200
+		for(k in sort(reco_matrix[result[center],])){
+			cur <- which(k==reco_matrix[result[center],])[1]
 			cur_first <- reco_matrix[result[first_free],cur]
 			cur_last <- reco_matrix[result[last_free],cur]
-			cat(i,":",cur,"\n")
-			if(cur_first>cur_last){
+			if(first_free==1){
+				last_free <- last_free+1
+				result[last_free] <- cur
+				reco_matrix[,cur] <- 200				
+			}else if(last_free==ncol(reco_matrix)){
 				first_free <- first_free-1
-				result[first_free] <- cur_first
-				reco_matrix[,cur] <- -10
+				result[first_free] <- cur
+				reco_matrix[,cur] <- 200			
+			}else if(cur_first>cur_last){
+				first_free <- first_free-1
+				result[first_free] <- cur
+				reco_matrix[,cur] <- 200
 			}else{
 				last_free <- last_free+1
-				result[last_free] <- cur_last
-				reco_matrix[,cur] <- -10
+				result[last_free] <- cur
+				reco_matrix[,cur] <- 200
 			}
 		}
-		result
+		output <- output[,result[-length(result)]]		
 	#}
+	result <- result[-length(result)]
+	result
 }
 
 
 #un_neighbor - heart of analysis!
 #input: matrix of data with wrongly ordered columns, to be clustered, sorted inside groups, nr_iterations (int) groups(int)
-#line 300!
 #return: matrix of the same data with rigth order of columns
-un_neighbor <- function(un_matrix,nr_iterations=1000,groups=5){
-	print("Running un_best_clustering")
-	#r <- un_best_clustering(un_matrix,nr_iterations,groups)
-	#for(i in 1:nrow(r)){
-	#	for(j in 1:ncol(r)){
-	#		if(r[i,j]<20){r[i,j]<-0}
-	#	}
-	#}
-	print("un_best_clustering done, running un_best_clustering")
-	#r <- un_best_clustering(r,nr_iterations,groups)
-	print("un_best_clustering done, final clustering")
-	#r<-kmeans(r,groups)
-	print("Final clustering done, running un_order_chromosome")
-	res <- NULL
-	#for(i in 1:groups){
-		#cat("Segregating chromosome: ",i,"\n")
-		cur <- un_order_chromosome(un_matrix)#[,which(r[[1]]==i)])
-		res <- cbind(res,un_matrix[,cur])
-	#}
-	print("un_order_chromosome done, returning result")
+un_neighbor <- function(chrom_matrix,method=1,nr_iterations=1000,groups=5){
+	if(method==1){
+		print("Using un_order_chromosome_by_cor.")
+		r <- un_best_clustering(chrom_matrix,nr_iterations,groups)
+		#un_cor <- cor(chrom_matrix,use="pairwise.complete.obs")
+		#r <- un_best_clustering(r,nr_iterations,groups)
+		r<-kmeans(r,groups)
+		res <- NULL
+		for(i in 1:groups){
+			cat("Segregating chromosome: ",i,"nr of markers:",length(which(r[[1]]==i)),"\n")
+			cur <- un_order_chromosome_by_cor(chrom_matrix[,which(r[[1]]==i)])
+			res <- cbind(res,chrom_matrix[,cur])
+		}
+	}else{
+		print("Using un_order_chromosome_by_reco.")
+		r <- un_best_clustering(chrom_matrix,nr_iterations,groups)
+		r <- kmeans(r,groups)
+		res <- NULL
+		for(i in 1:groups){
+			cat("Segregating chromosome: ",i,"nr of markers:",length(which(r[[1]]==i)),"\n")
+			cur <- un_order_chromosome_by_reco(chrom_matrix[,which(r[[1]]==i)])
+			res <- cbind(res,chrom_matrix[,cur])
+		}
+	}
 	res
 }
 
@@ -465,9 +492,19 @@ path<-pathway(result_binary, 100)
 setwd("D:/data")
 un_matrix <- un_intonumeric(as.matrix(read.table("genotypes_multitrait.txt", sep="", header=TRUE)))
 un_result<-un_drop_markers(un_matrix)
-un_ord<-un_order_chromosome(un_reco)
-un_rec_cor<-cor(un_matrix,use=)
-un_reco <- un_recombination(un_result)
+un_reco <- un_recombination(un_matrix)
+un_ord <- un_neighbor(un_reco,1000,5)
+un_ord <- un_neighbor(un_matrix,2,1000,5)
+un_ord_r <- un_neighbor((100-un_reco)/100,1,1000,5)
+un_ord_cor <- cor(un_ord,use="pairwise.complete.obs")
+un_rod_r_cor <- cor(un_ord_r,use="pairwise.complete.obs")
+image(un_ord_cor)
+image(un_rod_r_cor)
+un_ord<-un_order_chromosome_by_reco(un_reco)
+un_order_chromosome_by_cor
+un_reco_ord <- un_recombination(un_ord)
+un_rec_cor <- cor(un_ord,use="pairwise.complete.obs")
+image(un_rec_cor)
 ord <- un_neighbor(un_result,1000,20)
 ord_recombination <- un_recombination(ord)
 image(ord_recombination)
