@@ -176,37 +176,38 @@ un_intonumeric <- function(un_matrix){
 }
 
 #un_rec
-un_rec <- function(chrom_vector){
-	print("un_rec starting")
-	result <- as.vector(matrix(0,1,length(chrom_vector)))
-	for(k in 1:length(chrom_vector)){
-		if(is.na(chrom_matrix[i,j])||is.na(chrom_matrix[i,j])){
-			rec <- 0
-		}else if(chrom_matrix[k,j]==chrom_matrix[k,i]){
-			rec <- 0
+un_rec <- function(result_matrix,chrom_vector1,chrom_vector2){
+	cur<-result_matrix
+	for(i in 1:length(chrom_vector1)){
+		if(is.na(chrom_vector1[i])||is.na(chrom_vector2[i])){
+			cur <- cur
+		}else if(chrom_vector1[i]==chrom_vector2[i]){
+			cur <- cur
 		}else{
-			rec <- 1
+			cur <- cur + 1
 		}
-		output[i,j] <- output[i,j] + rec
 	}
+	#result_matrix[colnames(chrom_vector1),colnames(chrom_vector2)] <- cur
+	#result_matrix
+	print(cur)
+	cur
 }
 
-#un_recombination - instead of cor use recombination, very very slow (triple for - Danny won't like it)
+#un_recombination - TODO!!!
 #input - matrix of data
 #return - matrix of recombination values between COLUMNS
 un_recombination<-function(chrom_matrix){
-output <- matrix(0,ncol(chrom_matrix),ncol(chrom_matrix))
-#triple for, jupi!
-	for(i in 1:ncol(chrom_matrix)){
-		cat("Analysing column ",i,"\n")
-		for(j in 1:ncol(chrom_matrix)){
-			
-		}
-	}
-#beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
-	#output <- (100-output)/100
+	s <- proc.time()	
+	output <- matrix(0,ncol(chrom_matrix),ncol(chrom_matrix))
+	rownames(output)<-colnames(chrom_matrix, do.NULL = FALSE)
 	colnames(output)<-colnames(chrom_matrix, do.NULL = FALSE)
-	output <- output/ncol(chrom_matrix)*100
+	l<-vector("list",ncol(chrom_matrix)*ncol(chrom_matrix))
+	for(k in 1:ncol(chrom_matrix)){
+		
+	}
+	#beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
+	e <- proc.time()
+	cat("Done in:",e[3]-s[3],"s. Dziekuje, koniec imprezy.\n")
 	output
 }
 
