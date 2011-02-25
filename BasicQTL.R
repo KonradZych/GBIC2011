@@ -203,7 +203,7 @@ un_recombination<-function(chrom_matrix){
 	colnames(output)<-colnames(chrom_matrix, do.NULL = FALSE)
 	l<-vector("list",ncol(chrom_matrix)*ncol(chrom_matrix))
 	for(k in 1:ncol(chrom_matrix)){
-		
+		output <- output
 	}
 	#beacuase we want to be able to use the same functions as for corelaction, recombination values must be scaled
 	e <- proc.time()
