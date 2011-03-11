@@ -378,6 +378,18 @@ un_order_chromosome_by_reco <- function(chrom_matrix){
 	result
 }
 
+un_order_chromosome_by_seriation <- function(chrom_matrix){
+	#reco_matrix <- dist(chrom_matrix)
+	cur <- abs(cor(chrom_matrix,use="pairwise.complete.obs"))
+	cat("Starting un_order_chromosome_by_seriation\n")
+	for(i in 1:ncol(chrom_matrix)){
+		cat("Segregating marker",i,"\n")
+		o <- seriate(t(clean(cur)))
+		cur <- cur[get_order(o),get_order(o)]
+	}
+	get_order(o)
+}
+
 
 #un_neighbor - heart of analysis!
 #input: matrix of data with wrongly ordered columns, to be clustered, sorted inside groups, nr_iterations (int) groups(int)
@@ -402,7 +414,7 @@ un_neighbor <- function(chrom_matrix,method=1,nr_iterations=1000,groups=5){
 		res <- NULL
 		for(i in 1:groups){
 			cat("Segregating chromosome: ",i,"nr of markers:",length(which(r[[1]]==i)),"\n")
-			cur <- un_order_chromosome_by_reco(chrom_matrix[,which(r[[1]]==i)])
+			cur <- un_order_chromosome_by_seriation(chrom_matrix[,which(r[[1]]==i)])
 			res <- cbind(res,chrom_matrix[,cur])
 		}
 	}
@@ -472,7 +484,8 @@ makebinary_test <- function(){
 #1 - basic qtl map, using data from gene expression (phenotypes.txt) and genotyping (genotypes.txt)  
 #
 makebinary_test()
-setwd("D:/data")
+qtlAnalysis ("D:/data","genotypes.txt","phenotypes.txt","QTL_map.png")
+setwd("D:/data","phenotypes.txt","genotypes.txt","QTL_map.png")
 phenotypes <- as.matrix(read.table("phenotypes.txt", sep=""))
 genotypes <- as.matrix(read.table("genotypes.txt", sep=""))
 result_binary<-heatmapqtl(makebinary(clean(phenotypes)),genotypes)
