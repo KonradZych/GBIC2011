@@ -1,21 +1,11 @@
 WORKIE, WORKIE!
 
-***********THURSDAY***********
-BEFORE LUNCH
-o dataRoutines -> fill the scaffold
-o help files for dataRoutines
-o plotRoutines -> expression data plots
-o help files for plotRoutines
-o drink drie kopjes kofie
-o do tien commits
-
-AFTER LUNCH
-o projecting our results on real map
-o cleaning, help files, commiting
-
 ***********FRIDAY***********
+o projecting our results on real map
+o help files for dataRoutines
+o help files for plotRoutines
 o cleaning code day
-o help files -> TODOs (mostly see alsos)]
+o help files -> TODOs (mostly see alsos)
 o scaffolds
 o data files
 o chcecking package

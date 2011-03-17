@@ -23,6 +23,7 @@ workflow.parental <- function(){
 	library(pheno2geno)
 	library(qtl)
 	library(iqtl)
+	expressionChildren <- readChildrenExpression(expressionParental=expressionParental,verbose=TRUE,debugMode=2)
 	expressionChildren <- as.matrix(read.table("Gene_quant.txt",sep=""))
 	expressionParental <- as.matrix(read.table("Gene_parental.txt",sep=""))
 	genotypesChildren <- as.matrix(read.table("Genotypes.txt",sep=" "))
@@ -35,21 +36,14 @@ workflow.parental <- function(){
 	correctedChildrenCor <- cor(expressionCorrected,use="pairwise.complete.obs")
 	
 	parentalTtest <- -log10(t.test(expressionParental[,1:2],expressionParental[,3:4])[[3]])
+	
+	 expressionChildren <- childrenRoutine(expressionParental=expressionParental, verbose=TRUE, debugMode=2)
+
 }
 
-readChildren <- function(){
-	res1 <- as.matrix(read.table("Genotypes.txt",sep="\t",header=T))
-	res1 <- t(res1)
-	res2 <- res1[-1,]
-	rownames(res2)<-rownames(res1[-1,], do.NULL = FALSE)
-	colnames(res2)<-res1[1,]
-	res2
-}
+
 
 yoyo <- function(cross){
-  pheno <- pull.pheno(cross)
-  cat("NROW " ,nrow(  pheno),"\n")
-  cat("NCOL " ,ncol(  pheno),"\n")
   s <- proc.time()
   cormatrix <- NULL
   for(y in 1:ncol(pheno)){
