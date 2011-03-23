@@ -23,22 +23,19 @@ workflow.parental <- function(){
 	library(pheno2geno)
 	library(qtl)
 	library(iqtl)
-	expressionChildren <- readChildrenExpression(expressionParental=expressionParental,verbose=TRUE,debugMode=2)
-	expressionChildren <- as.matrix(read.table("Gene_quant.txt",sep=""))
-	expressionParental <- as.matrix(read.table("Gene_parental.txt",sep=""))
-	genotypesChildren <- as.matrix(read.table("Genotypes.txt",sep=" "))
-	cross <- genotypesToCross(genotypesChildren,expressionChildren,verbose=TRUE,debugMode=2)
-	correctionValues <-yoyo(cross)
-	crosscor <- genotypesToCross(genotypesChildren,expressionCorrected ,verbose=TRUE,debugMode=2)
-	correctionValues <-yoyo(crosscor)
-	expressionCorrected <- expressionChildren - t(correctionValues[-147,])
-	expressionChildrenCor <- cor(expressionChildren,use="pairwise.complete.obs")
-	correctedChildrenCor <- cor(expressionCorrected,use="pairwise.complete.obs")
 	
-	parentalTtest <- -log10(t.test(expressionParental[,1:2],expressionParental[,3:4])[[3]])
+	ril <- readFiles()
+	ril <- preprocessData(ril)
+	ril <- toGenotypes(ril,verbose=TRUE,debugMode=1)
 	
-	 expressionChildren <- childrenRoutine(expressionParental=expressionParental, verbose=TRUE, debugMode=2)
-
+	
+	 expressionChildrenCor <- cor(expressionChildren,use="pairwise.complete.obs")
+	 expressionParental <- parentalRoutine()
+	 expressionChildren <- childrenRoutine()
+	 childrenGenotypes <- childrenSplit(expressionChildren)
+	 childrenGenotypesReduced <- mapMarkers(childrenGenotypes,genotypeMatrix)
+	 genotypeMatrix <- mapMarkers(genotypeMatrix,childrenGenotypes)
+	 cross <- genotypesToCross(childrenGenotypes,expressionChildren[[1]][which(rownames(expressionChildren[[1]]) %in% rownames(childrenGenotypes)),],verbose=TRUE,debugMode=2)
 }
 
 
