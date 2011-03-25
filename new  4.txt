@@ -1,0 +1,8 @@
+res <- rep(0,length(rownames(recoMatrix)))
+names(res) <-  rownames(recoMatrix)
+for(x in 1:nrow(recoMatrix)){
+	i <- recoMatrix[x,]
+	j <- recoMatrixFlipped[x,]
+	res[names(which(j[which(i>24)]<24))] <- res[names(which(j[which(i>24)]<24))]+1
+}
+genotypes[which(res>172),] <- 1-genotypes[which(res>172),]

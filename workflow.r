@@ -20,23 +20,10 @@ workflow.appriopriateMarkers <- function(){
 
 workflow.parental <- function(){
 	setwd("D:/data/parental")
-	library(pheno2geno)
-	library(qtl)
-	library(iqtl)
-	
-	ril <- readFiles()
-	ril <- preprocessData(ril)
-	ril <- toGenotypes(ril,verbose=TRUE,debugMode=1)
-	
-	
-	 expressionChildrenCor <- cor(expressionChildren,use="pairwise.complete.obs")
-	 expressionParental <- parentalRoutine()
-	 expressionChildren <- childrenRoutine()
-	 childrenGenotypes <- childrenSplit(expressionChildren)
-	 childrenGenotypesReduced <- mapMarkers(childrenGenotypes,genotypeMatrix)
-	 genotypeMatrix <- mapMarkers(genotypeMatrix,childrenGenotypes)
-	 cross <- genotypesToCross(childrenGenotypes,expressionChildren[[1]][which(rownames(expressionChildren[[1]]) %in% rownames(childrenGenotypes)),],verbose=TRUE,debugMode=2)
-}
+	ril <- readFiles(verbose=TRUE,debugMode=2)
+	ril <- preprocessData(ril,verbose=TRUE,debugMode=2)
+	cross <- toGenotypes(ril,use="simulated",verbose=TRUE,debugMode=1)
+ }
 
 
 
