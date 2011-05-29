@@ -56,13 +56,14 @@ toGenotypes <- function(ril, use=c("real","simulated","map"), treshold=0.01, ove
 	
 	#*******CONVERTING CHILDREN PHENOTYPIC DATA TO GENOTYPES*******
 	s1 <- proc.time()
-	ril <- convertToGenotypes.internal(ril, treshold, verbose, debugMode)
+	#ril <- convertToGenotypes.internal(ril, treshold, verbose, debugMode)
+	ril <- convertToGenotypes.internal(ril, treshold, overlapInd, proportion, margin, verbose, debugMode)
 	e1 <- proc.time()
 	if(verbose && debugMode==2)cat("Converting phenotypes to genotypes done in:",(e1-s1)[3],"seconds.\n")
 	
 	#*******FILTERING GENOTYPES*******
 	s1 <- proc.time()
-	ril <- filterGenotypes.internal(ril, overlapInd, proportion, margin, verbose, debugMode)
+	#ril <- filterGenotypes.internal(ril, overlapInd, proportion, margin, verbose, debugMode)
 	e1 <- proc.time()
 	if(verbose && debugMode==2)cat("Selecting markers using specified parameters done in:",(e1-s1)[3],"seconds.\n")
 	
