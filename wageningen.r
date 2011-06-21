@@ -67,3 +67,21 @@ readTomatoe <- function(){
 		cat(skip,nrows,"\n")
 	}
 }
+
+for(i in 1:ncol(children)){
+	if(colnames(children)[i] %in% rnames[,1]){
+		colnames(children)[i] <- rnames[colnames(children)[i] ,2]
+	}
+}
+}
+
+for(i in 1:length(cross2$geno)){
+	colnames(cross2$geno[[i]]$data) <- paste("marker",1:ncol(cross2$geno[[i]]$data),"chr",i,sep="_")
+}
+
+
+removing:
+Pimp_6_1
+MM_6_2
+RIL_278_6
+RIL_260_d

@@ -1,6 +1,4 @@
-batcheffectcheck <- function(ril, cutoff=2, minimumvariance = 0.75){
-  #pheno <- t(pull.pheno(highvariancephenotypes(cross,minimumvariance)))
-  pheno <- ril$rils$phenotypes
+batcheffectcheck <- function(pheno, cutoff=2, minimumvariance = 0.75){
   correlation <- cor(pheno)
   tree <- heatmap(correlation, Colv=NA, scale="none", keep.dendro=T)
   branches <- cut(tree$Rowv,cutoff)
@@ -13,9 +11,9 @@ batcheffectcheck <- function(ril, cutoff=2, minimumvariance = 0.75){
   invisible(returnlist)
 }
 
-batcheffectcorrect <- function(ril, batchlist, minimumvariance = 0.75){
-  #pheno <- pull.pheno(highvariancephenotypes(cross,minimumvariance))
-  pheno <- ril$rils$phenotypes
+
+
+batcheffectcorrect <- function(pheno, batchlist, minimumvariance = 0.75){
   s <- proc.time()
   cormatrix <- NULL
   cat("",file="tmpbatch.out")
@@ -26,7 +24,7 @@ batcheffectcorrect <- function(ril, batchlist, minimumvariance = 0.75){
       s <- e
     }
     oamean <- mean(pheno[,y])
-    groupmeans <- lapply(lapply(batchlist, fun <- function(x){pheno[x,y]}),mean)
+    groupmeans <- lapply(lapply(batchlist, fun <- function(x){pheno[x,y]}),mean,na.rm=TRUE)
     diffmeans <- unlist(groupmeans) - oamean
     traitcorrection <- rep(0,nrow(pheno))
     for(x in 1:length(diffmeans)){
@@ -39,7 +37,7 @@ batcheffectcorrect <- function(ril, batchlist, minimumvariance = 0.75){
 }
 
 rilcorrect <- function(ril,cutoff){
-	befc <- batcheffectcheck(ril, cutoff, 0)
-	corm <- batcheffectcorrect(ril, befc, 0)
+	befc <- batcheffectcheck(tom_c, 0.75, 0)
+	corm <- batcheffectcorrect(t(tom_c), befc, 0)
 	invisible(corm)
 }
