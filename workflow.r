@@ -84,7 +84,6 @@ chil2 <- parchil
 setwd("D:/data/wilco data")
 children <- read.table(file="children.txt",sep="\t",header=T,row.names=1)
 parchil <- children[,8:120]
-cnames <- read.table("ril_labels_tomato.txt" ,sep="\t")
 colnames(parchil) <- cnames[,2]
 parchil <- parchil[,-which(colnames(parchil)=="Pimp_6_1")]
 parchil <- parchil[,-which(colnames(parchil)=="MM_6_2")]
@@ -190,17 +189,17 @@ for(i in 1:nrow(tom_c)){
 	 cat(i,"/",nrow(tom_c),"\n")
 }
 
-diffexp <- function(cur_row){
-	a <- mean(as.numeric(cur_row[8:12]),na.rm=TRUE)
-	b <- mean(as.numeric(cur_row[13:17]),na.rm=TRUE)
-	if(!(is.na(a))&&!(is.na(b))){
-		invisible(abs(a-b))
-	}else{
-	invisible(0)
+for(i in 1:ncol(ara)){
+	if(colnames(ara)[i]%in%anames[,1]){
+		colnames(ara)[i] <- anames[which(anames[,1]==colnames(ara)[i]),2]
 	}
 }
 
-load("batchcor.rd")
+
+cnames <- read.table("ril_labels_tomato.txt" ,sep="\t")
+colnames(tom_c)<-as.character(cnames[which(cnames[,1]%in%colnames(tom_c)),2])
+load("200_000_population.rd")
+load()
 tom_ <- matrix(unlist(tom_c),nrow(tom_c),ncol(tom_c))
 rownames(tom_) <- rownames(tom_c)
 colnames(tom_) <- colnames(tom_c)
@@ -212,5 +211,94 @@ gc()
 gc()
 population <- createPopulation(tom_c[,11:109],tom_c[,1:10])
 population <- preprocessData(population, c(1,1,1,1,1,0,0,0,0,0))
-cross <- toGenotypes(population, use="simulated", splitMethod="mean", treshold=0.2, verbose=TRUE,debug=1)
+cross <- toGenotypes(population, use="simulated", splitMethod="mean", treshold=0.01, verbose=TRUE,debug=2)
 which(rownames(population$founders$phenotypes)[which(population$founders$RP$pval[1]<0.01)] %in% rownames(population$founders$phenotypes)[which(population$founders$RP$pval[2]<0.01)])
+
+### arabidopsis
+
+for(i in 1:19){
+	filename <- paste("arabidopsis_exp_",i,".txt",sep="")
+	cat("Processing:",filename,"\n")
+	ara <- read.table(filename,sep="\t",header=F,row.names=1)
+	colnames(ara) <- colnames(ara_c)
+	cat(dim(ara_c),dim(ara),"\n")
+	ara_c <- rbind(ara_c,ara)
+	ara_ <- matrix(apply(ara_c,1,diffexp),nrow(ara_c),1)
+	print(dim(ara_))
+	rownames(ara_) <- rownames(ara_c)
+	ara_c <- ara_c[names(sort(ara_[,1],decreasing=TRUE)[1:10000]),]
+	ara <- NULL
+	ara_ <- NULL
+	gc()
+	gc()
+	gc()
+	gc()
+	gc()
+}
+
+diffexp <- function(cur_row){
+	a <- mean(as.numeric(cur_row[17:24]),na.rm=TRUE)
+	b <- mean(as.numeric(cur_row[189:196]),na.rm=TRUE)
+	if(!(is.na(a))&&!(is.na(b))){
+		invisible(abs(a-b))
+	}else{
+	invisible(0)
+	}
+}
+
+for(i in 1:98){
+	colnames(genotype)[i] <- rn[which(rn[,1]==i),3]
+}
+
+setwd("D:/GenesForSeedQualityWageningen/tomato")
+require(pheno2geno)
+load("200_000_population.rd")
+map <- read.table("marker.txt",sep="\t",row.names=1)
+map <- as.matrix(map)
+genotype <- read.table("offspring_genotype.txt",sep="\t",header=T)
+genotype <- as.matrix(genotype)
+population <- intoPopulation(population, list(genotype,map), c("offspring$genotypes","maps$genetic"))
+cross <- toGenotypes(population,genotype="real",orderUsing="maps_genetic")
+
+
+setwd("D:/data/tomato")
+require(pheno2geno)
+population <- readFiles(verbose=T,debugMode=2)
+population <- preprocessData(population,c(0,0,0,0,0,1,1,1,1,1))
+cross <- toGenotypes(population,genotype="real",orderUsing="maps_genetic")
+cross <- toGenotypes(ril,splitMethod="mean",genotype="simulated",minChrLength=0,treshold=0.5,margin=50,max.rf=10)
+population_ <- removeIndividuals.internal(population,c("RIL_308_d","RIL_304_d","RIL_278_6"))
+tom_c <- tom_c[,-which(colnames(tom_c)=="RIL_304_d")]
+
+for(i in 1:ncol(tom_c)){
+	colnames(tom_c)[i]<-cnames[which(cnames[,1]==colnames(tom_c)[i]),2]
+}
+
+result <- NULL
+for(i in 1:nrow(pl)){
+	print(sum(pl[,1]==pl[i,1]))
+	if(sum(pl[,1]==pl[i,1])!=1){
+		cur <- which(pl[,1]==pl[1,1])
+		if(sum(pl[cur,3]==100)!=1){
+			cur_ <- cur[which(pl[cur,3]==100)]
+			if(sum(pl[cur_,4]==25)==1){
+				result <- rbind(result,unlist(c(pl[cur_[which(pl[cur_,3]==100)],1],as.numeric(substr(pl[cur_[which(pl[cur_,3]==100)],2],9,10)),pl[cur_[which(pl[cur_,3]==100)],c(9,10)])))
+			}
+		}else{
+			result <- rbind(result,unlist(c(pl[cur[which(pl[cur,3]==100)],1],as.numeric(substr(pl[cur[which(pl[cur,3]==100)],2],9,10)),pl[cur[which(pl[cur,3]==100)],c(9,10)])))
+		}
+		pl <- pl[-which(pl[,1]==pl[i,1]),]
+	}else{
+		result <- rbind(result,unlist(c(pl[i,1],as.numeric(substr(pl[i,2],9,10)),pl[i,c(9,10)])))
+	}
+	#result <- matrix(unlist(result),nrow(result),ncol(result))
+}
+
+sortTable <- function(table_,col_n){
+	res_ <- NULL
+	cur_ <- sort(table_[,col_n],decreasing=T)
+	for(i in 1:nrow(table_)){
+		res_ <- rbind(res_,table_[,which(table_[,col_n]==cur_[i])])
+	}
+	invisible(res_)
+}

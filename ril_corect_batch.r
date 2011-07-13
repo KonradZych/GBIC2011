@@ -38,6 +38,7 @@ batcheffectcorrect <- function(pheno, batchlist, minimumvariance = 0.75){
 
 rilcorrect <- function(ril,cutoff){
 	befc <- batcheffectcheck(tom_c, 0.75, 0)
+	befc
 	corm <- batcheffectcorrect(t(tom_c), befc, 0)
 	invisible(corm)
 }
